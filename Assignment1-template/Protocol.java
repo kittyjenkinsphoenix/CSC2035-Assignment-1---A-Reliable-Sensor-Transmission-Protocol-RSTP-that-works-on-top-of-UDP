@@ -311,24 +311,24 @@ public class Protocol {
 	public void receiveWithAckLoss(DatagramSocket serverSocket, float loss)  {
 		byte[] buf = new byte[MAX_Segment_SIZE];
 
-		// Create a temporary list to store the readings
+		// Create A Temporary List To Store The Readings
 		java.util.List<String> receivedLines = new java.util.ArrayList<>();
 
-		// Track the number of correctly received readings
+		// Track The Number Of Correctly Received Readings
 		int readingCount = 0;
 
-		// Statistics for efficiency
-		int totalBytesReceived = 0; // includes retransmissions
-		int usefulBytes = 0; // bytes of useful data (first-time accepted segments)
+		// Statistics For Efficiency
+		int totalBytesReceived = 0; // Includes Retransmissions
+		int usefulBytes = 0; // Bytes Of Useful Data (First-Time Accepted Segments)
 
-		// Expected seq number starts at 1 (Meta used seq 0)
+		// Expected Seq Number Starts At 1 (Meta Used Seq 0)
 		int expectedSeq = 1;
 		int lastCorrectSeq = -1;
 
 		System.out.println("SERVER: Waiting For Data With Ack Loss Simulation");
 
 		try {
-			// Wait up to 2000ms for packets when client may have given up
+			// Wait Up To 2000Ms For Packets When Client May Have Given Up
 			serverSocket.setSoTimeout(2000);
 
 			while (true) {
@@ -336,7 +336,7 @@ public class Protocol {
 				try {
 					serverSocket.receive(incomingPacket);
 				} catch (java.net.SocketTimeoutException ste) {
-					// No packet received within timeout - assume client exited after retries
+					// No Packet Received Within Timeout - Assume Client Exited After Retries
 					System.out.println("SERVER: No Packets Received For 2000ms. Exiting.");
 					break;
 				}
@@ -355,7 +355,7 @@ public class Protocol {
 
 				System.out.println("SERVER: Receive: DATA [SEQ#"+ serverDataSeg.getSeqNum()+ "]("+"size:"+serverDataSeg.getSize()+", crc: "+serverDataSeg.getChecksum()+", content:"  + serverDataSeg.getPayLoad()+")");
 
-				// count every received data segment bytes
+				// Count Every Received Data Segment Bytes
 				totalBytesReceived += serverDataSeg.getSize();
 
 				long x = serverDataSeg.calculateChecksum();
@@ -363,7 +363,7 @@ public class Protocol {
 				if (serverDataSeg.getType() == SegmentType.Data && x == serverDataSeg.getChecksum()) {
 					System.out.println("SERVER: Calculated Checksum Is " + x + "  VALID");
 
-					// If seqNum is expected, accept and store payload
+					// If SeqNum Is Expected, Accept And Store Payload
 					if (serverDataSeg.getSeqNum() == expectedSeq) {
 						String[] lines = serverDataSeg.getPayLoad().split(";");
 						receivedLines.add("Segment ["+ serverDataSeg.getSeqNum() + "] has "+ lines.length + " Readings");
@@ -372,17 +372,17 @@ public class Protocol {
 
 						readingCount += lines.length;
 
-						// useful bytes increased only for the first-time accepted segments
+						// Useful Bytes Increased Only For The First-Time Accepted Segments
 						usefulBytes += serverDataSeg.getSize();
 
-						// extract client address and port
+						// Extract Client Address And Port
 						InetAddress iPAddress = incomingPacket.getAddress();
 						int port = incomingPacket.getPort();
 
-						// record last correct seq
+						// Record Last Correct Seq
 						lastCorrectSeq = serverDataSeg.getSeqNum();
 
-						// decide whether to simulate ack loss
+						// Decide Whether To Simulate Ack Loss
 						if (isLost(loss)) {
 							System.out.println("SERVER: Simulating ACK Loss. ACK[SEQ#" + serverDataSeg.getSeqNum() + "] Is Lost.");
 							System.out.println("******************************");
@@ -391,7 +391,7 @@ public class Protocol {
 							Server.sendAck(serverSocket, iPAddress, port, serverDataSeg.getSeqNum());
 						}
 
-						// flip expected seq
+						// Flip Expected Seq
 						expectedSeq = (expectedSeq == 1) ? 0 : 1;
 
 					} else {
@@ -399,7 +399,7 @@ public class Protocol {
 						System.out.println("Duplicate DATA Is Detected");
 						System.out.println("Sending An Ack Of The Previous Segment");
 
-						// resend ack for last correct seq (if known)
+						// Resend Ack For Last Correct Seq (If Known)
 						InetAddress iPAddress = incomingPacket.getAddress();
 						int port = incomingPacket.getPort();
 						if (lastCorrectSeq >= 0) {
@@ -418,7 +418,7 @@ public class Protocol {
 					System.out.println("***************************");
 				}
 
-				// if all readings are received, then write the readings to the file and finish
+				// If All Readings Are Received, Then Write The Readings To The File And Finish
 				if (this.getOutputFileName() != null && readingCount >= this.getFileTotalReadings()) {
 					Server.writeReadingsToFile(receivedLines, this.getOutputFileName());
 					break;
