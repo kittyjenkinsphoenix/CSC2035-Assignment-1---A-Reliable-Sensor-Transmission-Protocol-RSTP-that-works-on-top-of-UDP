@@ -67,7 +67,7 @@ public class Protocol {
 	 * See coursework specification for full details.	
 	 */
 	public void sendMetadata()   { 
-		// Count total number of readings (lines) in the input CSV file
+	// Count Total Number Of Readings (Lines) In The Input CSV File
 		int lines = 0;
 		try (BufferedReader br = new BufferedReader(new FileReader(this.inputFile))) {
 			while (br.readLine() != null) lines++;
@@ -77,19 +77,19 @@ public class Protocol {
 			System.exit(0);
 		}
 
-		// store the result in the global variable
+	// Store The Result In The Global Variable
 		this.fileTotalReadings = lines;
 
-		// assemble payload: <fileTotalReadings>,<outputFileName>,<patchSize>
+	// Assemble Payload: <fileTotalReadings>,<outputFileName>,<patchSize>
 		String payload = this.fileTotalReadings + "," + this.outputFileName + "," + this.maxPatchSize;
 
-		// create Meta segment (seqNum = 0)
+	// Create Meta Segment (SeqNum = 0)
 		Segment metaSeg = new Segment(0, SegmentType.Meta, payload, payload.length());
 
 	// Print Status Messages
 	System.out.println("CLIENT: META [SEQ#" + metaSeg.getSeqNum() + "] (Number Of Readings:" + this.fileTotalReadings + ", File Name:" + this.outputFileName + ", Patch Size:" + this.maxPatchSize + ")");
 
-		// serialize and send the segment to the server
+	// Serialize And Send The Segment To The Server
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			ObjectOutputStream os = new ObjectOutputStream(outputStream);
@@ -110,23 +110,23 @@ public class Protocol {
 	 * See coursework specification for full details.
 	 */
 	public void readAndSend() { 
-		// If there are no more readings to send, just return
+	// If There Are No More Readings To Send, Just Return
 		if (this.sentReadings >= this.fileTotalReadings) {
 			return;
 		}
 
-		// Read up to maxPatchSize readings from the input file starting at sentReadings
+	// Read Up To MaxPatchSize Readings From The Input File Starting At SentReadings
 		StringBuilder payloadBuilder = new StringBuilder();
 		int linesRead = 0;
 		try (BufferedReader br = new BufferedReader(new FileReader(this.inputFile))) {
-			// skip already sent lines
+			// Skip Already Sent Lines
 			for (int i = 0; i < this.sentReadings; i++) {
 				if (br.readLine() == null) break;
 			}
 
 			String line;
 			while (linesRead < this.maxPatchSize && (line = br.readLine()) != null) {
-				// parse the CSV line into a Reading object: sensorId,timestamp,value1,value2,value3
+				// Parse The CSV Line Into A Reading Object: SensorId,Timestamp,Value1,Value2,Value3
 				String[] parts = line.split(",");
 				if (parts.length >= 5) {
 					String sensorId = parts[0].trim();
@@ -140,7 +140,7 @@ public class Protocol {
 					payloadBuilder.append(r.toString());
 					linesRead++;
 				} else {
-					// Malformed line; skip it
+					// Malformed Line; Skip It
 				}
 			}
 		} catch (IOException e) {
@@ -149,21 +149,21 @@ public class Protocol {
 			System.exit(0);
 		}
 
-		// If nothing was read, return
+	// If Nothing Was Read, Return
 		if (linesRead == 0) return;
 
 		String payload = payloadBuilder.toString();
 
-		// Determine seqNum: first data segment should have seqNum 1 and alternate thereafter
+	// Determine SeqNum: First Data Segment Should Have SeqNum 1 And Alternate Thereafter
 		int seqNum = (this.totalSegments % 2 == 0) ? 1 : 0;
 
-		// Create Data segment using constructor so checksum is calculated
+	// Create Data Segment Using Constructor So Checksum Is Calculated
 		Segment dataSegment = new Segment(seqNum, SegmentType.Data, payload, payload.length());
 
-		// Print status message (Title Case)
+	// Print Status Message (Title Case)
 		System.out.println("CLIENT: Send: DATA [SEQ#" + dataSegment.getSeqNum() + "](Size:" + dataSegment.getSize() + ", Crc: " + dataSegment.getChecksum() + ", Content:" + dataSegment.getPayLoad() + ")");
 
-		// Serialize and send the data segment
+	// Serialize And Send The Data Segment
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			ObjectOutputStream os = new ObjectOutputStream(outputStream);
@@ -177,7 +177,7 @@ public class Protocol {
 			System.exit(0);
 		}
 
-		// Update totalSegments (count of segments client sent)
+	// Update TotalSegments (Count Of Segments Client Sent)
 		this.totalSegments++;
 	}
 
