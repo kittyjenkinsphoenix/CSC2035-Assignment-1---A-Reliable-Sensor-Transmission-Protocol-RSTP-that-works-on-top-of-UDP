@@ -110,7 +110,75 @@ public class Protocol {
 	 * See coursework specification for full details.
 	 */
 	public void readAndSend() { 
-		System.exit(0);
+		// If there are no more readings to send, just return
+		if (this.sentReadings >= this.fileTotalReadings) {
+			return;
+		}
+
+		// Read up to maxPatchSize readings from the input file starting at sentReadings
+		StringBuilder payloadBuilder = new StringBuilder();
+		int linesRead = 0;
+		try (BufferedReader br = new BufferedReader(new FileReader(this.inputFile))) {
+			// skip already sent lines
+			for (int i = 0; i < this.sentReadings; i++) {
+				if (br.readLine() == null) break;
+			}
+
+			String line;
+			while (linesRead < this.maxPatchSize && (line = br.readLine()) != null) {
+				// parse the CSV line into a Reading object: sensorId,timestamp,value1,value2,value3
+				String[] parts = line.split(",");
+				if (parts.length >= 5) {
+					String sensorId = parts[0].trim();
+					long timestamp = Long.parseLong(parts[1].trim());
+					float[] values = new float[3];
+					values[0] = Float.parseFloat(parts[2].trim());
+					values[1] = Float.parseFloat(parts[3].trim());
+					values[2] = Float.parseFloat(parts[4].trim());
+					Reading r = new Reading(sensorId, timestamp, values);
+					if (payloadBuilder.length() > 0) payloadBuilder.append(";");
+					payloadBuilder.append(r.toString());
+					linesRead++;
+				} else {
+					// Malformed line; skip it
+				}
+			}
+		} catch (IOException e) {
+			System.out.println("CLIENT: Error Reading Input File: " + e.getMessage());
+			if (this.socket != null && !this.socket.isClosed()) this.socket.close();
+			System.exit(0);
+		}
+
+		// If nothing was read, return
+		if (linesRead == 0) return;
+
+		String payload = payloadBuilder.toString();
+
+		// Determine seqNum: first data segment should have seqNum 1 and alternate thereafter
+		int seqNum = (this.totalSegments % 2 == 0) ? 1 : 0;
+
+		// Create Data segment using constructor so checksum is calculated
+		Segment dataSegment = new Segment(seqNum, SegmentType.Data, payload, payload.length());
+
+		// Print status message (Title Case)
+		System.out.println("CLIENT: Send: DATA [SEQ#" + dataSegment.getSeqNum() + "](Size:" + dataSegment.getSize() + ", Crc: " + dataSegment.getChecksum() + ", Content:" + dataSegment.getPayLoad() + ")");
+
+		// Serialize and send the data segment
+		try {
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			ObjectOutputStream os = new ObjectOutputStream(outputStream);
+			os.writeObject(dataSegment);
+			byte[] data = outputStream.toByteArray();
+			DatagramPacket packet = new DatagramPacket(data, data.length, this.ipAddress, this.portNumber);
+			this.socket.send(packet);
+		} catch (IOException e) {
+			System.out.println("CLIENT: Error Sending Data Segment: " + e.getMessage());
+			if (this.socket != null && !this.socket.isClosed()) this.socket.close();
+			System.exit(0);
+		}
+
+		// Update totalSegments (count of segments client sent)
+		this.totalSegments++;
 	}
 
 	/* 
