@@ -1,3 +1,5 @@
+// Comments Were Produced By Copilot
+
 /*
  * Replace the following string of 0s with your student number
  * 000000000
@@ -89,7 +91,7 @@ public class Protocol {
 		// Print Status Messages
 		System.out.println("CLIENT: META [SEQ#" + metaSeg.getSeqNum() + "] (Number Of Readings:" + this.fileTotalReadings + ", File Name:" + this.outputFileName + ", Patch Size:" + this.maxPatchSize + ")");
 
-		// Serialize And Send The Segment To The Server
+		// Serialise And Send The Segment To The Server
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			ObjectOutputStream os = new ObjectOutputStream(outputStream);
@@ -219,8 +221,9 @@ public class Protocol {
 				count = payload.split(";").length;
 			}
 			this.sentReadings += count;
-
-			// Separator Line (Visual)
+				
+			// Separator Line (Visual) 
+			// Produced By Copilot
 			System.out.println("***************************************************************************************************");
 
 			// If All Readings Have Been Acknowledged, Print Total Segments And Exit
@@ -232,7 +235,7 @@ public class Protocol {
 			return true;
 
 		} catch (java.net.SocketTimeoutException e) {
-			// Timeout waiting for ACK - return false so caller can retransmit
+			// Timeout Waiting For ACK - Return False So Caller Can Retransmit
 			return false;
 		} catch (java.io.IOException e) {
 			System.out.println("CLIENT: Error Receiving Ack: " + e.getMessage());
@@ -270,6 +273,7 @@ public class Protocol {
 				}
 
 				// Not Acknowledged - Retransmit
+				// Produced By Copilot
 				this.currRetry++;
 				if (this.currRetry > this.maxRetries) {
 					System.out.println("CLIENT: Maximum Retries Exceeded. Exiting.");
@@ -331,7 +335,7 @@ public class Protocol {
 			// Wait Up To 2000Ms For Packets When Client May Have Given Up
 			serverSocket.setSoTimeout(2000);
 
-			while (true) {
+			while (true) { // Produced By Copilot
 				DatagramPacket incomingPacket = new DatagramPacket(buf, buf.length);
 				try {
 					serverSocket.receive(incomingPacket);
