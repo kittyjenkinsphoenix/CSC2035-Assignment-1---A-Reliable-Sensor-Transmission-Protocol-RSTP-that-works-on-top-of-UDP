@@ -3,6 +3,12 @@
  * 000000000
  */
 import java.io.File;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutputStream;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
@@ -61,7 +67,41 @@ public class Protocol {
 	 * See coursework specification for full details.	
 	 */
 	public void sendMetadata()   { 
-		System.exit(0);
+		// Count total number of readings (lines) in the input CSV file
+		int lines = 0;
+		try (BufferedReader br = new BufferedReader(new FileReader(this.inputFile))) {
+			while (br.readLine() != null) lines++;
+		} catch (IOException e) {
+			System.out.println("CLIENT: Error Reading Input File: " + e.getMessage());
+			if (this.socket != null && !this.socket.isClosed()) this.socket.close();
+			System.exit(0);
+		}
+
+		// store the result in the global variable
+		this.fileTotalReadings = lines;
+
+		// assemble payload: <fileTotalReadings>,<outputFileName>,<patchSize>
+		String payload = this.fileTotalReadings + "," + this.outputFileName + "," + this.maxPatchSize;
+
+		// create Meta segment (seqNum = 0)
+		Segment metaSeg = new Segment(0, SegmentType.Meta, payload, payload.length());
+
+	// Print Status Messages
+	System.out.println("CLIENT: META [SEQ#" + metaSeg.getSeqNum() + "] (Number Of Readings:" + this.fileTotalReadings + ", File Name:" + this.outputFileName + ", Patch Size:" + this.maxPatchSize + ")");
+
+		// serialize and send the segment to the server
+		try {
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			ObjectOutputStream os = new ObjectOutputStream(outputStream);
+			os.writeObject(metaSeg);
+			byte[] data = outputStream.toByteArray();
+			DatagramPacket packet = new DatagramPacket(data, data.length, this.ipAddress, this.portNumber);
+			this.socket.send(packet);
+		} catch (IOException e) {
+			System.out.println("CLIENT: Error Sending Metadata: " + e.getMessage());
+			if (this.socket != null && !this.socket.isClosed()) this.socket.close();
+			System.exit(0);
+		}
 	} 
 
 
@@ -139,8 +179,8 @@ public class Protocol {
 	{
 		File file = new File(fileName);
 		if(!file.exists()) {
-			System.out.println("CLIENT: File does not exists"); 
-			System.out.println("CLIENT: Exit .."); 
+			System.out.println("CLIENT: File Does Not Exist"); 
+			System.out.println("CLIENT: Exit."); 
 			System.exit(0);
 		}
 		return file;
