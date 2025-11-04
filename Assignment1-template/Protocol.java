@@ -158,7 +158,10 @@ public class Protocol {
 		int seqNum = (this.totalSegments % 2 == 0) ? 1 : 0;
 
 	// Create Data Segment Using Constructor So Checksum Is Calculated
-		Segment dataSegment = new Segment(seqNum, SegmentType.Data, payload, payload.length());
+	Segment dataSegment = new Segment(seqNum, SegmentType.Data, payload, payload.length());
+
+	// Store The Current Data Segment So Other Methods Can Access It
+	this.dataSeg = dataSegment;
 
 	// Print Status Message (Title Case)
 		System.out.println("CLIENT: Send: DATA [SEQ#" + dataSegment.getSeqNum() + "](Size:" + dataSegment.getSize() + ", Crc: " + dataSegment.getChecksum() + ", Content:" + dataSegment.getPayLoad() + ")");
@@ -186,7 +189,53 @@ public class Protocol {
 	 * See coursework specification for full details.
 	 */
 	public boolean receiveAck() { 
-		System.exit(0);
+		byte[] buf = new byte[MAX_Segment_SIZE];
+		DatagramPacket incomingPacket = new DatagramPacket(buf, buf.length);
+		try {
+			// Wait For Ack From Server
+			this.socket.receive(incomingPacket);
+
+			// Deserialize The Incoming Segment
+			byte[] data = incomingPacket.getData();
+			java.io.ByteArrayInputStream in = new java.io.ByteArrayInputStream(data);
+			java.io.ObjectInputStream is = new java.io.ObjectInputStream(in);
+			Segment receivedAck = (Segment) is.readObject();
+
+			// Store Ack Segment
+			this.ackSeg = receivedAck;
+
+			// Print Status Message
+			System.out.println("CLIENT: Receive: ACK [SEQ#" + receivedAck.getSeqNum() + "]");
+
+			// Check Sequence Number
+			if (this.dataSeg == null || receivedAck.getSeqNum() != this.dataSeg.getSeqNum()) {
+				return false;
+			}
+
+			// Update SentReadings Based On The Payload Of The Last Sent Data Segment
+			String payload = this.dataSeg.getPayLoad();
+			int count = 0;
+			if (payload != null && !payload.isEmpty()) {
+				count = payload.split(";").length;
+			}
+			this.sentReadings += count;
+
+			// Separator Line (Visual)
+			System.out.println("***************************************************************************************************");
+
+			// If All Readings Have Been Acknowledged, Print Total Segments And Exit
+			if (this.sentReadings >= this.fileTotalReadings) {
+				System.out.println("Total Segments: " + this.totalSegments);
+				System.exit(0);
+			}
+
+			return true;
+
+		} catch (java.io.IOException | ClassNotFoundException e) {
+			System.out.println("CLIENT: Error Receiving Ack: " + e.getMessage());
+			if (this.socket != null && !this.socket.isClosed()) this.socket.close();
+			System.exit(0);
+		}
 		return false;
 	}
 
