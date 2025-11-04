@@ -67,7 +67,7 @@ public class Protocol {
 	 * See coursework specification for full details.	
 	 */
 	public void sendMetadata()   { 
-	// Count Total Number Of Readings (Lines) In The Input CSV File
+		// Count Total Number Of Readings (Lines) In The Input CSV File
 		int lines = 0;
 		try (BufferedReader br = new BufferedReader(new FileReader(this.inputFile))) {
 			while (br.readLine() != null) lines++;
@@ -77,19 +77,19 @@ public class Protocol {
 			System.exit(0);
 		}
 
-	// Store The Result In The Global Variable
+		// Store The Result In The Global Variable
 		this.fileTotalReadings = lines;
 
-	// Assemble Payload: <fileTotalReadings>,<outputFileName>,<patchSize>
+		// Assemble Payload: <fileTotalReadings>,<outputFileName>,<patchSize>
 		String payload = this.fileTotalReadings + "," + this.outputFileName + "," + this.maxPatchSize;
 
-	// Create Meta Segment (SeqNum = 0)
+		// Create Meta Segment (SeqNum = 0)
 		Segment metaSeg = new Segment(0, SegmentType.Meta, payload, payload.length());
 
-	// Print Status Messages
-	System.out.println("CLIENT: META [SEQ#" + metaSeg.getSeqNum() + "] (Number Of Readings:" + this.fileTotalReadings + ", File Name:" + this.outputFileName + ", Patch Size:" + this.maxPatchSize + ")");
+		// Print Status Messages
+		System.out.println("CLIENT: META [SEQ#" + metaSeg.getSeqNum() + "] (Number Of Readings:" + this.fileTotalReadings + ", File Name:" + this.outputFileName + ", Patch Size:" + this.maxPatchSize + ")");
 
-	// Serialize And Send The Segment To The Server
+		// Serialize And Send The Segment To The Server
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			ObjectOutputStream os = new ObjectOutputStream(outputStream);
@@ -110,12 +110,12 @@ public class Protocol {
 	 * See coursework specification for full details.
 	 */
 	public void readAndSend() { 
-	// If There Are No More Readings To Send, Just Return
+		// If There Are No More Readings To Send, Just Return
 		if (this.sentReadings >= this.fileTotalReadings) {
 			return;
 		}
 
-	// Read Up To MaxPatchSize Readings From The Input File Starting At SentReadings
+		// Read Up To MaxPatchSize Readings From The Input File Starting At SentReadings
 		StringBuilder payloadBuilder = new StringBuilder();
 		int linesRead = 0;
 		try (BufferedReader br = new BufferedReader(new FileReader(this.inputFile))) {
@@ -140,7 +140,7 @@ public class Protocol {
 					payloadBuilder.append(r.toString());
 					linesRead++;
 				} else {
-					// Malformed Line; Skip It
+					System.out.println("CLIENT: Invalid CSV Line: " + line);
 				}
 			}
 		} catch (IOException e) {
@@ -149,12 +149,12 @@ public class Protocol {
 			System.exit(0);
 		}
 
-	// If Nothing Was Read, Return
+		// If Nothing Was Read, Return
 		if (linesRead == 0) return;
 
 		String payload = payloadBuilder.toString();
 
-	// Determine SeqNum: First Data Segment Should Have SeqNum 1 And Alternate Thereafter
+		// Determine SeqNum: First Data Segment Should Have SeqNum 1 And Alternate Thereafter
 		int seqNum = (this.totalSegments % 2 == 0) ? 1 : 0;
 
 	// Create Data Segment Using Constructor So Checksum Is Calculated
@@ -163,10 +163,10 @@ public class Protocol {
 	// Store The Current Data Segment So Other Methods Can Access It
 	this.dataSeg = dataSegment;
 
-	// Print Status Message (Title Case)
+		// Print Status Message
 		System.out.println("CLIENT: Send: DATA [SEQ#" + dataSegment.getSeqNum() + "](Size:" + dataSegment.getSize() + ", Crc: " + dataSegment.getChecksum() + ", Content:" + dataSegment.getPayLoad() + ")");
 
-	// Serialize And Send The Data Segment
+		// Serialise And Send The Data Segment
 		try {
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 			ObjectOutputStream os = new ObjectOutputStream(outputStream);
@@ -180,7 +180,7 @@ public class Protocol {
 			System.exit(0);
 		}
 
-	// Update TotalSegments (Count Of Segments Client Sent)
+		// Update TotalSegments (Count Of Segments Client Sent)
 		this.totalSegments++;
 	}
 
@@ -428,7 +428,7 @@ public class Protocol {
 		} catch (IOException e) {
 			System.out.println("SERVER: Error: " + e.getMessage());
 		} finally {
-			// compute and print efficiency if some useful bytes were recorded
+			// Compute And Print Efficiency If Some Useful Bytes Were Recorded
 			if (totalBytesReceived > 0) {
 				System.out.println("Total Bytes :" + totalBytesReceived);
 				System.out.println("Useful Bytes :" + usefulBytes);
